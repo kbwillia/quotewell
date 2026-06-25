@@ -19,7 +19,6 @@ A single Python CLI (`python pipeline.py`) that:
 
 | Assumption | Rationale |
 |---|---|
-| **Python is acceptable** | Confirmed with QuoteWell; README originally specified TypeScript. |
 | **One record per inbox file** | Each `.txt` is one logical submission; idempotency key = `quotewell-{filename}`. |
 | **Part 1 errors block AMS submit** | If source email lacks a required field (Tula effective date), we report `needs_review` instead of guessing. |
 | **`annualRevenue: null` is valid** | README and Pelican Point email explicitly allow unknown revenue at intake. |
@@ -72,6 +71,23 @@ A single Python CLI (`python pipeline.py`) that:
 5. **Retry jitter + exponential backoff** — reduce thundering herd on 429.
 6. **Parse malformed 200 bodies** — attempt regex extract of `recordId` before blind retry (only if idempotency weren't available).
 7. **TypeScript port** — if aligning with Terminal stack; logic would transfer 1:1.
+
+---
+
+## Generalization (future)
+
+Short list of what would scale beyond the 4 sample emails:
+
+- **Expand normalization tables** — more state aliases, LOB variants, date and money formats
+- **Config-driven source rules** — YAML/JSON rules instead of hardcoded regex in code
+- **Chronological thread parsing** — treat top-of-email as newest; apply corrections in order
+- **Separate mailing vs location fields** — if AMS schema supports both; avoids PO Box vs facility guesswork
+- **LLM second-pass validation** — compare extracted record to source email for contradictions (TBD revenue, unconfirmed dates)
+- **Schema validation library** (e.g. Pydantic) — clearer field-level errors on new payload shapes
+- **Per-field confidence scores** — route low-confidence fields to human review, not all-or-nothing block
+- **Rules engine + human-in-the-loop** — replace phrase-specific regex as broker wording varies
+- **LLM re-prompt on parse failure** — when JSON can't be recovered, retry extract with stricter instructions
+- **Audit log** — raw extract, overrides, and outcomes per submission for debugging new edge cases
 
 ---
 

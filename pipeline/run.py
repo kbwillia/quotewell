@@ -1,7 +1,5 @@
 """
-End-to-end pipeline: Part 1 (extract/normalize) + Part 2 (AMS submit/confirm).
-
-One function per email; one list for the full inbox run.
+Glue layer: prepare record from email → AMS submit → final status per email.
 """
 
 from __future__ import annotations
@@ -13,13 +11,13 @@ from typing import Any
 
 from pipeline.ams_client import SubmitOutcome, SubmitResult, submit_record
 from pipeline.extract_client import DEFAULT_BASE_URL
-from pipeline.part1 import Part1Result, RecordStatus, process_email_file
+from pipeline.prepare_record import PreparedRecordResult, RecordStatus, process_email_file
 
 
 class PipelineStatus(str, Enum):
-    CONFIRMED = "confirmed"  # In AMS, verified by GET
-    NEEDS_REVIEW = "needs_review"  # Part 1 blocked submission (e.g. missing date)
-    FAILED = "failed"  # Was ready but AMS submit could not confirm
+    CONFIRMED = "confirmed"  # in AMS, GET verified
+    NEEDS_REVIEW = "needs_review"  # prepare step blocked (e.g. Tula)
+    FAILED = "failed"  # was ready but AMS never confirmed
 
 
 @dataclass
@@ -27,7 +25,7 @@ class PipelineResult:
     source_file: str
     status: PipelineStatus
     record_id: str | None = None
-    part1: Part1Result | None = None
+    prepared: PreparedRecordResult | None = None
     submit: SubmitResult | None = None
     message: str = ""
     warnings: list[str] = field(default_factory=list)
@@ -46,36 +44,31 @@ class PipelineResult:
 
 
 def _idempotency_key(email_path: Path) -> str:
-    """
-    Stable key per inbox file — survives retries without duplicate AMS rows.
-
-    Using the filename (not record content) keeps the key stable even if we
-    tweak normalization between attempts during development.
-    """
+    # One stable key per inbox file — same key on every retry for that email
     return f"quotewell-{email_path.name}"
 
 
 def run_email(email_path: Path, base_url: str = DEFAULT_BASE_URL) -> PipelineResult:
-    """Full pipeline for one email file."""
-    part1 = process_email_file(email_path, base_url=base_url)
+    # --- Prepare: extract, parse, normalize, validate ---
+    prepared = process_email_file(email_path, base_url=base_url)
 
     result = PipelineResult(
         source_file=email_path.name,
-        status=PipelineStatus.FAILED,
-        part1=part1,
-        warnings=list(part1.warnings),
-        errors=list(part1.errors),
+        status=PipelineStatus.FAILED,  # default; updated below
+        prepared=prepared,
+        warnings=list(prepared.warnings),
+        errors=list(prepared.errors),
     )
 
-    # Part 1 blocked — report clearly, do not submit (governability).
-    if part1.status != RecordStatus.READY or not part1.final_record:
+    # Blocking errors → don't submit, report needs_review
+    if prepared.status != RecordStatus.READY or not prepared.final_record:
         result.status = PipelineStatus.NEEDS_REVIEW
-        result.message = "; ".join(part1.errors) or "Record not ready for submission"
+        result.message = "; ".join(prepared.errors) or "Record not ready for submission"
         return result
 
-    # Part 2: submit + confirm
+    # --- Submit: POST /records with retries + GET confirm ---
     submit = submit_record(
-        part1.final_record,
+        prepared.final_record,
         idempotency_key=_idempotency_key(email_path),
         base_url=base_url,
     )

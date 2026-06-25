@@ -1,12 +1,6 @@
 """
-Step 3 of Part 1: cross-check normalized model output against the source email.
-
-This is the governability layer QuoteWell cares about (see audience.md):
-  - Who is the AI acting for? → the broker's email, not the model.
-  - What happens when the model is wrong? → override, warn, or block submission.
-
-We do NOT blindly trust /extract output. Real retail submissions (company.md)
-include mid-thread corrections, TBD fields, and explicit mailing-address rules.
+Step 4: cross-check model output against the SOURCE EMAIL (governability).
+Broker email wins when the model is wrong or invents data.
 """
 
 from __future__ import annotations
@@ -14,37 +8,22 @@ from __future__ import annotations
 import re
 from typing import Any
 
-# ---------------------------------------------------------------------------
-# Source-email pattern detectors
-# ---------------------------------------------------------------------------
-
 
 def _revenue_marked_unknown_in_source(email_text: str) -> bool:
-    """
-    Detect when the broker explicitly says revenue is unknown / TBD.
-
-    email_2.txt: "revenue is TBD — don't hold the submission for it"
-    The stub model still returns annualRevenue: 850000 — that is a hallucination
-    we must reject (README: do not guess).
-    """
+    # email_2: "revenue is TBD" — model wrongly returns 850000
     lowered = email_text.lower()
     patterns = (
         r"revenue\s+is\s+tbd",
         r"revenue\s+tbd",
         r"financials?\s+(?:is|are)\s+tbd",
         r"revenue\s+(?:is\s+)?unknown",
-        r"don't hold the submission for it",  # paired with TBD in sample email
+        r"don't hold the submission for it",
     )
     return any(re.search(pattern, lowered) for pattern in patterns)
 
 
 def _effective_date_not_confirmed_in_source(email_text: str) -> bool:
-    """
-    Detect when effective date is explicitly not finalized.
-
-    email_4.txt: owner "hasn't locked it in yet" — stub model still returns
-    effectiveDate: 2026-07-01. Submitting that would be indefensible.
-    """
+    # email_4: owner hasn't locked date — model wrongly returns 2026-07-01
     lowered = email_text.lower()
     patterns = (
         r"hasn't locked it in",
@@ -58,13 +37,7 @@ def _effective_date_not_confirmed_in_source(email_text: str) -> bool:
 
 
 def _extract_po_box_mailing_address(email_text: str) -> dict[str, str] | None:
-    """
-    Pull PO Box mailing address when the email insists mail goes to a PO Box.
-
-    email_3.txt: facility at 880 Frontage Rd but "mailing addres is the po box"
-    Stub model returns the facility street — wrong for AMS mailingAddress field.
-    """
-    # Match: PO Box 1142, Bend, OR 97709 (flexible spacing/casing)
+    # email_3: parse "PO Box 1142, Bend, OR 97709" from broker text
     match = re.search(
         r"po\s*\.?\s*box\s+(\d+)\s*,\s*([^,]+)\s*,\s*([A-Za-z]{2})\s+(\d{5})",
         email_text,
@@ -83,46 +56,31 @@ def _extract_po_box_mailing_address(email_text: str) -> dict[str, str] | None:
 
 
 def _po_box_required_for_mailing(email_text: str) -> bool:
-    """
-    True when broker text says mailing must be the PO Box, not the facility.
-
-    We require PO Box AND an explicit facility-vs-mail contrast (email_3 pattern).
-    Note: we cannot use the substring "mailing addres" alone — it falsely matches
-    the normal phrase "mailing address" in other emails (e.g. email_1).
-    """
+    # Only when email contrasts facility vs PO Box (avoids false match on email_1)
     lowered = email_text.lower()
     has_po_box = "po box" in lowered or "p.o. box" in lowered
     facility_contrast = (
         "facility" in lowered
         or "mail goes" in lowered
-        or "mailing addres is the po box" in lowered  # typo from sample email_3
+        or "mailing addres is the po box" in lowered
         or "mailing address is the po box" in lowered
     )
     return has_po_box and facility_contrast
 
 
 def _latest_revenue_from_source(email_text: str) -> int | None:
-    """
-    For threaded emails with corrections, prefer the latest stated revenue.
-
-    email_1.txt: correction says $4.2M overrides earlier $3.8M in the thread.
-    The stub model already returns $4.2M — this is a safety net if it didn't.
-    """
+    # email_1 safety net: "annual revenue is $4.2M" in latest reply
     lowered = email_text.lower()
-
-    # Look for explicit correction phrasing near a dollar amount.
     correction = re.search(
         r"(?:annual revenue is|revenue is)\s+\$?\s*([\d,.]+)\s*([mk])?",
         lowered,
     )
     if correction:
         return _parse_money_fragment(correction.group(1), correction.group(2))
-
     return None
 
 
 def _parse_money_fragment(number_part: str, suffix: str | None) -> int | None:
-    """Helper: turn '4.2' + 'm' into 4200000."""
     try:
         value = float(number_part.replace(",", ""))
     except ValueError:
@@ -134,31 +92,19 @@ def _parse_money_fragment(number_part: str, suffix: str | None) -> int | None:
     return int(value)
 
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-
 def apply_source_validation(
     source_email: str,
     draft: dict[str, Any],
 ) -> tuple[dict[str, Any], list[str], list[str]]:
     """
-    Adjust a normalized draft using evidence from the original email.
-
-    Returns:
-      - updated draft (may mutate field values)
-      - warnings: non-blocking issues a broker should see (Human+ / red zone)
-      - errors: blocking issues — record must NOT be submitted as-is
-
-    Philosophy (audience.md): get to the red zone with defensible data; flag
-    ambiguity rather than silently shipping model hallucinations.
+    Returns: (updated record, warnings, errors).
+    errors = blocking (don't submit). warnings = broker should know.
     """
     warnings: list[str] = []
     errors: list[str] = []
-    updated = dict(draft)
+    updated = dict(draft)  # copy so we don't mutate caller's dict
 
-    # --- Revenue: unknown in source → force null ---------------------------
+    # --- Pelican Point: revenue TBD → must be null ---
     if _revenue_marked_unknown_in_source(source_email):
         if updated.get("annualRevenue") is not None:
             warnings.append(
@@ -167,7 +113,7 @@ def apply_source_validation(
             )
         updated["annualRevenue"] = None
 
-    # --- Revenue: threaded correction (Blue Oak) ---------------------------
+    # --- Blue Oak: prefer latest revenue from thread (if detected) ---
     elif (corrected := _latest_revenue_from_source(source_email)) is not None:
         if updated.get("annualRevenue") != corrected:
             warnings.append(
@@ -175,7 +121,7 @@ def apply_source_validation(
             )
         updated["annualRevenue"] = corrected
 
-    # --- Mailing address: PO Box override (Sundance) -----------------------
+    # --- Sundance: PO Box for mailing, not facility street ---
     if _po_box_required_for_mailing(source_email):
         po_box = _extract_po_box_mailing_address(source_email)
         if po_box:
@@ -192,7 +138,7 @@ def apply_source_validation(
                 "parse it — needs human review."
             )
 
-    # --- Effective date: not confirmed → block -----------------------------
+    # --- Tula: effective date not confirmed → block submit ---
     if _effective_date_not_confirmed_in_source(source_email):
         if updated.get("effectiveDate"):
             warnings.append(
@@ -209,12 +155,7 @@ def apply_source_validation(
 
 
 def validate_record_completeness(record: dict[str, Any]) -> list[str]:
-    """
-    Final schema check: every AMS-required field present and non-empty.
-
-    annualRevenue may legitimately be null (Pelican Point). effectiveDate may
-    NOT be null for submission — that's why Tula fails here.
-    """
+    """Final gate: all required AMS fields present before Part 2 submit."""
     from pipeline.schema import REQUIRED_ADDRESS_FIELDS, REQUIRED_RECORD_FIELDS
 
     errors: list[str] = []
@@ -226,7 +167,7 @@ def validate_record_completeness(record: dict[str, Any]) -> list[str]:
 
         value = record[field]
 
-        # annualRevenue and dba are allowed to be None.
+        # null is OK for optional-ish fields
         if field in {"annualRevenue", "dba"}:
             continue
 
