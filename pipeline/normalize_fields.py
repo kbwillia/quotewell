@@ -31,18 +31,241 @@ _LINE_OF_BUSINESS_ALIASES: dict[str, str] = {
     "business owners": "bop",
 }
 
-# Model says "Tex." → AMS wants "TX"
+# Model says "Tex." / "California" → AMS wants 2-letter USPS code (all states + DC)
 _STATE_ALIASES: dict[str, str] = {
-    "tex.": "TX",
-    "texas": "TX",
-    "tx": "TX",
-    "calif.": "CA",
-    "california": "CA",
-    "ca": "CA",
-    "oregon": "OR",
-    "or": "OR",
+    # Alabama
     "alabama": "AL",
+    "ala.": "AL",
+    "ala": "AL",
     "al": "AL",
+    # Alaska
+    "alaska": "AK",
+    "ak": "AK",
+    # Arizona
+    "arizona": "AZ",
+    "ariz.": "AZ",
+    "ariz": "AZ",
+    "az": "AZ",
+    # Arkansas
+    "arkansas": "AR",
+    "ark.": "AR",
+    "ark": "AR",
+    "ar": "AR",
+    # California
+    "california": "CA",
+    "calif.": "CA",
+    "calif": "CA",
+    "cal.": "CA",
+    "cal": "CA",
+    "ca": "CA",
+    # Colorado
+    "colorado": "CO",
+    "colo.": "CO",
+    "colo": "CO",
+    "co": "CO",
+    # Connecticut
+    "connecticut": "CT",
+    "conn.": "CT",
+    "conn": "CT",
+    "ct": "CT",
+    # Delaware
+    "delaware": "DE",
+    "del.": "DE",
+    "del": "DE",
+    "de": "DE",
+    # District of Columbia
+    "district of columbia": "DC",
+    "washington dc": "DC",
+    "washington d.c.": "DC",
+    "d.c.": "DC",
+    "dc": "DC",
+    # Florida
+    "florida": "FL",
+    "fla.": "FL",
+    "fla": "FL",
+    "fl": "FL",
+    # Georgia
+    "georgia": "GA",
+    "ga.": "GA",
+    "ga": "GA",
+    # Hawaii
+    "hawaii": "HI",
+    "hi": "HI",
+    # Idaho
+    "idaho": "ID",
+    "id": "ID",
+    # Illinois
+    "illinois": "IL",
+    "ill.": "IL",
+    "ill": "IL",
+    "il": "IL",
+    # Indiana
+    "indiana": "IN",
+    "ind.": "IN",
+    "ind": "IN",
+    "in": "IN",
+    # Iowa
+    "iowa": "IA",
+    "ia": "IA",
+    # Kansas
+    "kansas": "KS",
+    "kans.": "KS",
+    "kans": "KS",
+    "ks": "KS",
+    # Kentucky
+    "kentucky": "KY",
+    "ky.": "KY",
+    "ky": "KY",
+    # Louisiana
+    "louisiana": "LA",
+    "la.": "LA",
+    "la": "LA",
+    # Maine
+    "maine": "ME",
+    "me": "ME",
+    # Maryland
+    "maryland": "MD",
+    "md.": "MD",
+    "md": "MD",
+    # Massachusetts
+    "massachusetts": "MA",
+    "mass.": "MA",
+    "mass": "MA",
+    "ma": "MA",
+    # Michigan
+    "michigan": "MI",
+    "mich.": "MI",
+    "mich": "MI",
+    "mi": "MI",
+    # Minnesota
+    "minnesota": "MN",
+    "minn.": "MN",
+    "minn": "MN",
+    "mn": "MN",
+    # Mississippi
+    "mississippi": "MS",
+    "miss.": "MS",
+    "miss": "MS",
+    "ms": "MS",
+    # Missouri
+    "missouri": "MO",
+    "mo.": "MO",
+    "mo": "MO",
+    # Montana
+    "montana": "MT",
+    "mont.": "MT",
+    "mont": "MT",
+    "mt": "MT",
+    # Nebraska
+    "nebraska": "NE",
+    "nebr.": "NE",
+    "nebr": "NE",
+    "neb.": "NE",
+    "neb": "NE",
+    "ne": "NE",
+    # Nevada
+    "nevada": "NV",
+    "nev.": "NV",
+    "nev": "NV",
+    "nv": "NV",
+    # New Hampshire
+    "new hampshire": "NH",
+    "n.h.": "NH",
+    "nh": "NH",
+    # New Jersey
+    "new jersey": "NJ",
+    "n.j.": "NJ",
+    "nj": "NJ",
+    # New Mexico
+    "new mexico": "NM",
+    "n.m.": "NM",
+    "nm": "NM",
+    # New York
+    "new york": "NY",
+    "n.y.": "NY",
+    "ny": "NY",
+    # North Carolina
+    "north carolina": "NC",
+    "n.c.": "NC",
+    "nc": "NC",
+    # North Dakota
+    "north dakota": "ND",
+    "n.d.": "ND",
+    "nd": "ND",
+    # Ohio
+    "ohio": "OH",
+    "oh": "OH",
+    # Oklahoma
+    "oklahoma": "OK",
+    "okla.": "OK",
+    "okla": "OK",
+    "ok": "OK",
+    # Oregon
+    "oregon": "OR",
+    "ore.": "OR",
+    "ore": "OR",
+    "or": "OR",
+    # Pennsylvania
+    "pennsylvania": "PA",
+    "penn.": "PA",
+    "penn": "PA",
+    "pa.": "PA",
+    "pa": "PA",
+    # Rhode Island
+    "rhode island": "RI",
+    "r.i.": "RI",
+    "ri": "RI",
+    # South Carolina
+    "south carolina": "SC",
+    "s.c.": "SC",
+    "sc": "SC",
+    # South Dakota
+    "south dakota": "SD",
+    "s.d.": "SD",
+    "sd": "SD",
+    # Tennessee
+    "tennessee": "TN",
+    "tenn.": "TN",
+    "tenn": "TN",
+    "tn": "TN",
+    # Texas
+    "texas": "TX",
+    "tex.": "TX",
+    "tex": "TX",
+    "tx": "TX",
+    # Utah
+    "utah": "UT",
+    "ut": "UT",
+    # Vermont
+    "vermont": "VT",
+    "vt.": "VT",
+    "vt": "VT",
+    # Virginia
+    "virginia": "VA",
+    "va.": "VA",
+    "va": "VA",
+    # Washington
+    "washington": "WA",
+    "wash.": "WA",
+    "wash": "WA",
+    "wa": "WA",
+    # West Virginia
+    "west virginia": "WV",
+    "w.va.": "WV",
+    "w. va.": "WV",
+    "wv": "WV",
+    # Wisconsin
+    "wisconsin": "WI",
+    "wis.": "WI",
+    "wis": "WI",
+    "wisc.": "WI",
+    "wisc": "WI",
+    "wi": "WI",
+    # Wyoming
+    "wyoming": "WY",
+    "wyo.": "WY",
+    "wyo": "WY",
+    "wy": "WY",
 }
 
 

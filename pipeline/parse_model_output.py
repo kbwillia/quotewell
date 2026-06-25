@@ -2,8 +2,6 @@
 Step 2 after /extract: turn messy model TEXT into a Python dict.
 """
 
-from __future__ import annotations
-
 import json
 import re
 from typing import Any

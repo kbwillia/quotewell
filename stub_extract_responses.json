@@ -1,0 +1,18 @@
+{
+  "email_1.txt": {
+    "model": "qw-extract-1",
+    "output": "Here is the extracted information from the email:\n\n```json\n{\n  \"insuredName\": \"Blue Oak Industries LLC\",\n  \"dba\": \"Blue Oak Manufacturing\",\n  \"mailingAddress\": {\n    \"street\": \"4180 Commerce Park Dr, Suite B\",\n    \"city\": \"Waco\",\n    \"state\": \"Tex.\",\n    \"zip\": \"76712\"\n  },\n  \"lineOfBusiness\": \"general liability\",\n  \"effectiveDate\": \"07/01/2026\",\n  \"annualRevenue\": \"$4.2M\",\n  \"contactEmail\": \"maria@blueoakmfg.com\"\n}\n```\n\nNote that the revenue figure was corrected in the most recent message of the thread."
+  },
+  "email_2.txt": {
+    "model": "qw-extract-1",
+    "output": "{\"insuredName\":\"Pelican Point Seafood House Inc\",\"dba\":null,\"mailingAddress\":{\"street\":\"2217 Shoreline Blvd\",\"city\":\"Mobile\",\"state\":\"AL\",\"zip\":\"36605\"},\"lineOfBusiness\":\"workers_compensation\",\"effectiveDate\":\"2026-07-01\",\"annualRevenue\":850000,\"contactEmail\":\"curtis@pelicanpointseafood.com\"}"
+  },
+  "email_3.txt": {
+    "model": "qw-extract-1",
+    "output": "{\"insuredName\":\"High Desert Holdings LLC\",\"dba\":\"Sundance Storage\",\"mailingAddress\":{\"street\":\"880 Frontage Rd\",\"city\":\"Bend\",\"state\":\"OR\",\"zip\":\"97701\"},\"lineOfBusiness\":\"commercial_property\",\"effectiveDate\":\"8/15/26\",\"annualRevenue\":950000,\"contactEmail\":\"gary.hudd@sundancestorage.com\"}"
+  },
+  "email_4.txt": {
+    "model": "qw-extract-1",
+    "output": "{\"insuredName\":\"Tula Bakery LLC\",\"dba\":\"Tula's\",\"mailingAddress\":{\"street\":\"614 Larkin St\",\"city\":\"San Francisco\",\"state\":\"CA\",\"zip\":\"94109\"},\"lineOfBusiness\":\"bop\",\"effectiveDate\":\"2026-07-01\",\"annualRevenue\":\"$1.2M\",\"contactEmail\":\"sofia@tulabakery.com\"}"
+  }
+}

@@ -2,8 +2,6 @@
 Calls POST /api/v1/extract — required first step (no hand-transcribing emails).
 """
 
-from __future__ import annotations # this: lets us use type hints in python 3.7+
-
 import json
 import urllib.error
 import urllib.request

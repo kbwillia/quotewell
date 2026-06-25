@@ -13,6 +13,57 @@ A single Python CLI (`python pipeline.py`) that:
 
 **Run:** `node stub/server.js` then `python pipeline.py`
 
+## Pipeline
+
+```mermaid
+flowchart TD
+    subgraph input [Input]
+        INBOX["inbox/*.txt"]
+    end
+
+    subgraph stub [Stub - node stub/server.js]
+        EXTRACT["POST /api/v1/extract"]
+        RECORDS["POST /api/v1/records"]
+        GET["GET /api/v1/records/:id"]
+    end
+
+    subgraph prepare [Prepare record]
+        EC["extract_client.py"]
+        PARSE["parse_model_output.py"]
+        NORM["normalize_fields.py"]
+        SRC["source_validation.py"]
+        PREP["prepare_record.py"]
+    end
+
+    subgraph submit [Submit and confirm]
+        AMS["ams_client.py"]
+    end
+
+    subgraph output [Outcome per email]
+        CONF["CONFIRMED"]
+        REV["NEEDS REVIEW"]
+        FAIL["FAILED"]
+    end
+
+    CLI["pipeline.py / run.py"]
+
+    INBOX --> CLI
+    CLI --> PREP
+    PREP --> EC
+    EC --> EXTRACT
+    EXTRACT -->|"raw output string"| PARSE
+    PARSE --> NORM
+    NORM --> SRC
+    INBOX -.->|"source email text"| SRC
+    SRC -->|"ready?"| AMS
+    SRC -->|"blocking errors"| REV
+    AMS --> RECORDS
+    RECORDS -->|"retry + Idempotency-Key"| RECORDS
+    RECORDS --> GET
+    GET --> CONF
+    AMS -->|"exhausted retries"| FAIL
+```
+
 ---
 
 ## Assumptions
