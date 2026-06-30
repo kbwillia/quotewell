@@ -3,8 +3,6 @@ Step 4: cross-check model output against the SOURCE EMAIL (governability).
 Broker email wins when the model is wrong or invents data.
 """
 
-from __future__ import annotations
-
 import re
 from typing import Any
 
